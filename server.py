@@ -22,7 +22,7 @@ class GameServer:
             "strength": 10,
             "level": 1
         }
-        self.file_manager = FileManager("saves")  # Initialize FileManager with save directory
+        self.file_manager = FileManager("saves", verbose=False)  # Set verbose to False to reduce messages
         saved_character = self.file_manager.load_character_progress()
         if saved_character:
             self.character = saved_character  # Load saved character data
@@ -112,7 +112,8 @@ class GameServer:
                 "resource_rate": self.resource_rate,
                 "character": self.character
             }
-        self.file_manager.save_character_progress(self.character)  # Ensure character is always saved
+        # Remove automatic save on every state broadcast
+        # Only save when meaningful changes happen (like in handle_upgrade)
         with self.lock:
             clients_copy = self.clients.copy()
         message = json.dumps(state).encode()
