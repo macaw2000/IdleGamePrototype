@@ -26,6 +26,10 @@ class IdleGameClient:
         self.upgrade_button = tk.Button(master, text="Upgrade", command=self.upgrade)
         self.upgrade_button.pack(pady=20)
 
+        # Save progress button
+        self.save_button = tk.Button(master, text="Save Progress", command=self.save_progress)
+        self.save_button.pack(pady=20)
+
         # Character stats section
         self.stats_label = tk.Label(master, text="Character Stats", font=("Arial", 14, "bold"))
         self.stats_label.pack(pady=10)
@@ -43,6 +47,11 @@ class IdleGameClient:
 
     def upgrade(self):
         message = {"action": "upgrade"}
+        self.client.send(json.dumps(message).encode())
+
+    def save_progress(self):
+        """Send a save request to the server."""
+        message = {"action": "save", "character": self.character}
         self.client.send(json.dumps(message).encode())
 
     def listen_to_server(self):

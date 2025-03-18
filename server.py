@@ -2,6 +2,7 @@ import socket
 import threading
 import json
 import time
+from file_manager import FileManager  # Import the new FileManager class
 
 class GameServer:
     def __init__(self, host="127.0.0.1", port=12345):
@@ -19,15 +20,26 @@ class GameServer:
             "strength": 10,
             "level": 1
         }
+        self.file_manager = FileManager("saves")  # Initialize FileManager with save directory
+        saved_character = self.file_manager.load_character_progress()
+        if saved_character:
+            self.character = saved_character  # Load saved character data
+            print("Character progress loaded successfully.")
+        else:
+            print("No saved character progress found.")
 
     def start(self):
         print("Server started...")
+        self.server.settimeout(1.0)  # Set a timeout for the accept call
         threading.Thread(target=self.generate_resources, daemon=True).start()
         while self.running:
-            client, addr = self.server.accept()
-            print(f"Client connected: {addr}")
-            self.clients.append(client)
-            threading.Thread(target=self.handle_client, args=(client,), daemon=True).start()
+            try:
+                client, addr = self.server.accept()
+                print(f"Client connected: {addr}")
+                self.clients.append(client)
+                threading.Thread(target=self.handle_client, args=(client,), daemon=True).start()
+            except socket.timeout:
+                continue  # Continue the loop if no connection is made within the timeout
 
     def generate_resources(self):
         while self.running:
@@ -44,6 +56,9 @@ class GameServer:
                 message = json.loads(data)
                 if message["action"] == "upgrade":
                     self.handle_upgrade(client)
+                elif message["action"] == "save":
+                    self.file_manager.save_character_progress(message.get("character"))
+                    client.send(json.dumps({"status": "success", "message": "Progress saved successfully."}).encode())
         except ConnectionResetError:
             pass
         finally:
@@ -71,7 +86,14 @@ class GameServer:
 
     def stop(self):
         self.running = False
+        print("Closing all client connections...")
+        for client in self.clients:
+            try:
+                client.close()  # Close each client connection
+            except Exception as e:
+                print(f"Error closing client connection: {e}")
         self.server.close()
+        print("Server stopped.")
 
 if __name__ == "__main__":
     server = GameServer()
