@@ -1,14 +1,28 @@
-import pygame
+import tkinter as tk
 import threading
 import time
 
 class IdleGame:
-    def __init__(self):
+    def __init__(self, master):
+        self.master = master
         self.resources = 0
         self.resource_rate = 1
         self.running = True
-        self.screen = None
-        self.font = None
+
+        self.master.title("Idle Game")
+        self.master.geometry("400x300")
+
+        self.resources_label = tk.Label(master, text=f"Resources: {self.resources}")
+        self.resources_label.pack(pady=10)
+
+        self.rate_label = tk.Label(master, text=f"Rate: {self.resource_rate}/s")
+        self.rate_label.pack(pady=10)
+
+        self.upgrade_button = tk.Button(master, text="Upgrade", command=self.upgrade)
+        self.upgrade_button.pack(pady=20)
+
+        self.update_display()
+        threading.Thread(target=self.generate_resources, daemon=True).start()
 
     def generate_resources(self):
         while self.running:
@@ -22,40 +36,20 @@ class IdleGame:
         else:
             print("Not enough resources to upgrade!")
 
-    def start(self):
-        # Initialize pygame
-        pygame.init()
-        self.screen = pygame.display.set_mode((400, 300))
-        pygame.display.set_caption("Idle Game")
-        self.font = pygame.font.Font(None, 36)
+    def update_display(self):
+        self.resources_label.config(text=f"Resources: {self.resources}")
+        self.rate_label.config(text=f"Rate: {self.resource_rate}/s")
+        self.master.after(100, self.update_display)
 
-        # Start resource generation in a separate thread
-        threading.Thread(target=self.generate_resources, daemon=True).start()
+    def run(self):
+        self.master.protocol("WM_DELETE_WINDOW", self.on_closing)
+        self.master.mainloop()
 
-        # Main game loop
-        while self.running:
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    self.running = False
-                elif event.type == pygame.MOUSEBUTTONDOWN:
-                    if 150 <= event.pos[0] <= 250 and 200 <= event.pos[1] <= 250:
-                        self.upgrade()
-
-            # Draw the game screen
-            self.screen.fill((30, 30, 30))
-            resources_text = self.font.render(f"Resources: {self.resources}", True, (255, 255, 255))
-            rate_text = self.font.render(f"Rate: {self.resource_rate}/s", True, (255, 255, 255))
-            upgrade_text = self.font.render("Upgrade", True, (0, 0, 0))
-
-            self.screen.blit(resources_text, (20, 20))
-            self.screen.blit(rate_text, (20, 60))
-            pygame.draw.rect(self.screen, (0, 255, 0), (150, 200, 100, 50))
-            self.screen.blit(upgrade_text, (160, 210))
-
-            pygame.display.flip()
-
-        pygame.quit()
+    def on_closing(self):
+        self.running = False
+        self.master.destroy()
 
 if __name__ == "__main__":
-    game = IdleGame()
-    game.start()
+    root = tk.Tk()
+    game = IdleGame(root)
+    game.run()
