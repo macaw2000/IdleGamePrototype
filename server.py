@@ -3,6 +3,7 @@ import threading
 import json
 import time
 from file_manager import FileManager  # Import the new FileManager class
+from character import Character  # Import the new Character class
 
 class GameServer:
     def __init__(self, host="127.0.0.1", port=12345, max_clients=10):
@@ -16,19 +17,9 @@ class GameServer:
         self.running = True
         self.lock = threading.Lock()  # Add a lock for thread safety
 
-        # Character stats
-        self.character = {
-            "health": 100,
-            "strength": 10,
-            "level": 1
-        }
-        self.file_manager = FileManager("saves", verbose=False)  # Set verbose to False to reduce messages
-        saved_character = self.file_manager.load_character_progress()
-        if saved_character:
-            self.character = saved_character  # Load saved character data
-            print("Character progress loaded successfully.")
-        else:
-            print("No saved character progress found.")
+        # Create file manager and character instance
+        self.file_manager = FileManager("saves", verbose=False)
+        self.character = Character(self.file_manager)
 
     def start(self):
         print("Server started...")
@@ -94,8 +85,7 @@ class GameServer:
             if self.resources >= 10:
                 self.resources -= 10
                 self.resource_rate += 1
-                self.character["level"] += 1
-                self.file_manager.save_character_progress(self.character)  # Automatically save progress
+                self.character.level_up()  # Use Character class method
                 upgrade_success = True
             else:
                 upgrade_success = False
@@ -110,7 +100,7 @@ class GameServer:
             state = {
                 "resources": self.resources,
                 "resource_rate": self.resource_rate,
-                "character": self.character
+                "character": self.character.get_stats()  # Get character stats from Character class
             }
         # Remove automatic save on every state broadcast
         # Only save when meaningful changes happen (like in handle_upgrade)
